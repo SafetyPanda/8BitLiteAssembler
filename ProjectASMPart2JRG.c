@@ -101,12 +101,14 @@ void runCode()
     address = 0;
 	bool anotherCommand = TRUE;
 	int registerNumber;
-	int registerAddFrom;
+	int registerAddFrom = 0;
 	int addressValue;
+	int flag;
 
 	while (anotherCommand)
 	{
 
+		printf("\n\n\n\nAddress Location: %d\n\n\n\n", address);
 		if ((memory[address] & 224) == MOVREG) //MOV Constant value into a register
 		{
 			registerNumber = memory[address] & 24;
@@ -170,10 +172,11 @@ void runCode()
         else if((memory[address] & 224) == ADD) // ADD TWO REGISTERS TOGETHER.
         {
 			registerNumber = memory[address] & 24;
-			registerAddFrom = memory[address] & 7;
+			registerAddFrom = memory[address] & 3;
 
 			if (registerNumber == 0)
 			{
+				address++;
 				if (registerAddFrom == 0)
 				{
 					regis.AX += regis.AX;
@@ -249,15 +252,293 @@ void runCode()
 					regis.DX += regis.DX;
 				}
 			}
+			//address++;
         }
 
-        else if((memory[address] & 224) == CMP)
+        else if((memory[address] & 224) == CMP) //COMPARE REGISTER WITH REGISTER, ADDRESS, CONSTANT
 		{
 
+			printf("IN COMPARE\n\n");
+        	registerNumber = memory[address] & 24;
+			registerAddFrom = memory[address] & 3;
+
+
+        	if((memory[address] & 224) == 4) //Check to see if I'm looking at an address
+			{
+        		addressValue = memory[address];
+        		printf("%d address value\n\n", addressValue);
+        		if(registerNumber == AXREG)
+				{
+        			if(regis.AX > memory[addressValue])
+					{
+        				regis.flag = 1;
+					}
+					else if(regis.AX < memory[addressValue])
+					{
+						regis.flag = -1;
+					}
+					else if(regis.AX == memory[addressValue])
+					{
+						regis.flag = 0;
+					}
+					else
+					{
+						regis.flag = 99;
+					}
+				}
+				else if(registerNumber == BXREG)
+				{
+					if(regis.BX > memory[addressValue])
+					{
+						regis.flag = 1;
+					}
+					else if(regis.BX < memory[addressValue])
+					{
+						regis.flag = -1;
+					}
+					else
+					{
+						regis.flag = 0;
+					}
+				}
+				else if(registerNumber == CXREG)
+				{
+					if(regis.CX > memory[addressValue])
+					{
+						regis.flag = 1;
+					}
+					else if(regis.CX < memory[addressValue])
+					{
+						regis.flag = -1;
+					}
+					else
+					{
+						regis.flag = 0;
+					}
+				}
+				else if(registerNumber == DXREG)
+				{
+					if(regis.DX > memory[addressValue])
+					{
+						regis.flag = 1;
+					}
+					else if(regis.DX < memory[addressValue])
+					{
+						regis.flag = -1;
+					}
+					else
+					{
+						regis.flag = 0;
+					}
+				}
+				address++;
+			}
+        	else if(registerAddFrom < 4) // Comparing Two registers
+			{
+				if (registerNumber == AXREG)
+				{
+					if (registerAddFrom == 0)
+					{
+						if(regis.AX > regis.AX)
+						{
+							regis.flag = 1;
+						}
+						else if(regis.AX < regis.AX)
+						{
+							regis.flag = -1;
+						}
+						else if(regis.AX == regis.AX)
+						{
+							regis.flag = 0;
+						}
+					}
+					else if (registerAddFrom == 1)
+					{
+						printf("in here");
+						if(regis.AX > regis.BX)
+						{
+							regis.flag = 1;
+						}
+						else if(regis.AX < regis.BX)
+						{
+							regis.flag = -1;
+						}
+						else if(regis.AX == regis.BX)
+						{
+							regis.flag = 0;
+						}
+					}
+					else if (registerAddFrom == 2)
+					{
+						if(regis.AX > regis.CX)
+						{
+							regis.flag = 1;
+						}
+						else if(regis.AX < regis.CX)
+						{
+							regis.flag = -1;
+						}
+						else if(regis.AX == regis.CX)
+						{
+							regis.flag = 0;
+						}
+					}
+					else if (registerAddFrom == 3)
+					{
+						if(regis.AX > regis.DX)
+						{
+							regis.flag = 1;
+						}
+						else if(regis.AX < regis.DX)
+						{
+							regis.flag = -1;
+						}
+						else if(regis.AX == regis.DX)
+						{
+							regis.flag = 0;
+						}
+					}
+				}
+
+				else if (registerNumber == BXREG)
+				{
+					if (registerAddFrom == 0)
+					{
+						if(regis.DX > memory[addressValue])
+						{
+							flag = 1;
+						}
+						else if(regis.DX < memory[addressValue])
+						{
+							flag = -1;
+						}
+						else
+						{
+							flag = 0;
+						}
+					}
+					else if (registerAddFrom == 1)
+					{
+						regis.DX += regis.BX;
+					}
+					else if (registerAddFrom == 2)
+					{
+						regis.DX += regis.CX;
+					}
+					else
+					{
+						regis.DX += regis.DX;
+					}
+				}
+				else if (registerNumber == CXREG)
+				{
+					if (registerAddFrom == 0)
+					{
+						regis.DX += regis.AX;
+					}
+					else if (registerAddFrom == 1)
+					{
+						regis.DX += regis.BX;
+					}
+					else if (registerAddFrom == 2)
+					{
+						regis.DX += regis.CX;
+					}
+					else
+					{
+						regis.DX += regis.DX;
+					}
+				}
+				else if (registerNumber == DXREG)
+				{
+					if (registerAddFrom == 0)
+					{
+						regis.DX += regis.AX;
+					}
+					else if (registerAddFrom == 1)
+					{
+						regis.DX += regis.BX;
+					}
+					else if (registerAddFrom == 2)
+					{
+						regis.DX += regis.CX;
+					}
+					else
+					{
+						regis.DX += regis.DX;
+					}
+				}
+
+			}
+			else
+			{
+				address++;
+				if(registerNumber == AXREG)
+				{
+					printf("\n\n\n\n\n\n\n%d\n\n\n\n\n\n\n", memory[address]);
+					if(regis.AX > memory[address])
+					{
+						printf("Value of Reg: %d\n",regis.AX);
+						printf("Value of Memory: %d\n",memory[address]);
+						regis.flag = 1;
+					}
+					else if(regis.AX < memory[address])
+					{
+						regis.flag = -1;
+					}
+					else
+					{
+						regis.flag = 0;
+					}
+				}
+				else if(registerNumber == BXREG)
+				{
+					if(regis.BX > memory[address])
+					{
+						regis.flag = 1;
+					}
+					else if(regis.BX < memory[address])
+					{
+						regis.flag = -1;
+					}
+					else
+					{
+						regis.flag = 0;
+					}
+				}
+				else if(registerNumber == CXREG)
+				{
+					if(regis.CX > memory[address])
+					{
+						regis.flag = 1;
+					}
+					else if(regis.CX < memory[address])
+					{
+						regis.flag = -1;
+					}
+					else
+					{
+						regis.flag = 0;
+					}
+				}
+				else
+				{
+					if(regis.DX > memory[address])
+					{
+						regis.flag = 1;
+					}
+					else if(regis.DX < memory[address])
+					{
+						regis.flag = -1;
+					}
+					else
+					{
+						regis.flag = 0;
+					}
+				}
+
+			}
 		}
-
-
-
 		else if ((memory[address] & 5) == 5)
 		{
 			return;
@@ -414,13 +695,35 @@ void convertToMachineCode(FILE *fin)
 	{
 		machineCode = CMP;
 		machineCode += (whichReg(oper1[0]) << 3);
-		memory[address] = machineCode;
-		address++;
-		
-		convertToNumber(oper2, 0, &oper2num);
-		memory[address] = oper2num;
+		if (oper2[0] == '[') //compare to an address
+		{
+			machineCode += 4; //Adding address flag
+			memory[address] = machineCode;
+			address++;
 
-		address++;
+			convertToNumber(oper2, 1, &oper2num);
+			memory[address] = oper2num;
+			address++;
+		}
+		else if(oper2[0] == 'a' || oper2[0] == 'b' || oper2[0] == 'c' || oper2[0] == 'd') //compare with a register
+		{
+			machineCode += (whichReg(oper2[0]) + 1);
+			memory[address] = machineCode;
+			address++;
+		}
+		else // Compare with a constant
+		{
+			memory[address] = machineCode;
+			address++;
+
+			convertToNumber(oper2, 0, &oper2num);
+			memory[address] = oper2num;
+
+			address++;
+		}
+
+
+
 	}
 	printf("\n");
 	printMemoryDump();
