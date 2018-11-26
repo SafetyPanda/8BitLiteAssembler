@@ -32,7 +32,15 @@ char ASM_FILE_NAME[ ] = "/home/safetypanda/Documents/CodingProjects/assemblyproj
 #define ADD 160
 #define MOVMEM  224
 #define CMP 96
-
+#define PUT 7
+#define GET 6
+#define JMP 14
+#define JE 8
+#define JNE 9
+#define JB 10
+#define JBE 11
+#define JAE 13
+#define JA 12
 
 
 //boolean
@@ -249,6 +257,7 @@ void runCode()
 					regis.DX += regis.DX;
 				}
 			}
+			address++;
         }
 
         else if((memory[address] & 224) == CMP) //COMPARE REGISTER WITH REGISTER, ADDRESS, CONSTANT
@@ -658,14 +667,22 @@ void runCode()
 					}
 				}
 			}
+			address++;
+		}
+		else if ((memory[address] & 14) == JMP)
+		{
+			printf("here");
+			address++;
+			address = memory[address];
+			printf("%d",address);
 		}
 		else if ((memory[address] & 5) == 5)
 		{
 			return;
 		}
-
-		address++;
+		printMemoryDump();
 	}
+
 }
 
 /********************   splitCommand   ***********************
@@ -840,10 +857,95 @@ void convertToMachineCode(FILE *fin)
 
 			address++;
 		}
-
-
-
 	}
+	else if(command[0] == 'j') //jumps
+	{
+		if(command[1] == 'e')
+		{
+			machineCode = JE;
+			memory[address] = machineCode;
+			address++;
+
+			convertToNumber(oper1, 1, &oper2num);
+			memory[address] = oper2num;
+		}
+		else if(command[1] == 'n')
+		{
+			machineCode = JNE;
+			memory[address] = machineCode;
+			address++;
+
+			convertToNumber(oper1, 1, &oper2num);
+			memory[address] = oper2num;
+		}
+		else if(command[1] == 'b')
+		{
+			if(command[2] == 'e')
+			{
+				machineCode = JBE;
+				memory[address] = machineCode;
+				address++;
+
+				convertToNumber(oper1, 1, &oper2num);
+				memory[address] = oper2num;
+			}
+			else
+			{
+				machineCode = JB;
+				memory[address] = machineCode;
+				address++;
+
+				convertToNumber(oper1, 1, &oper2num);
+				memory[address] = oper2num;
+			}
+		}
+		else if(command[1] == 'a')
+		{
+			if(command[2] == 'e')
+			{
+				machineCode = JAE;
+				memory[address] = machineCode;
+				address++;
+
+				convertToNumber(oper1, 1, &oper2num);
+				memory[address] = oper2num;
+			}
+			else
+			{
+				machineCode = JA;
+				memory[address] = machineCode;
+				address++;
+
+				convertToNumber(oper1, 1, &oper2num);
+				memory[address] = oper2num;
+			}
+		}
+		else if(command[1] == 'm')
+		{
+			machineCode = JMP;
+			memory[address] = machineCode;
+			address++;
+
+			convertToNumber(oper1, 1, &oper2num);
+			memory[address] = oper2num;
+
+
+		}
+		address++;
+	}
+	else if(command[0] == 'p') //Puts
+	{
+		machineCode = PUT;
+		memory[address] = machineCode;
+		address++;
+	}
+	else if(command[0] == 'g')//Gets
+	{
+		machineCode = GET;
+		memory[address] = machineCode;
+		address++;
+	}
+
 	printf("\n");
 	printMemoryDump();
 

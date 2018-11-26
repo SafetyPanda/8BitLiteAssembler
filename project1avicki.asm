@@ -1,5 +1,4 @@
-mov ax 26
-mov bx 27
-add ax bx
-cmp ax 100
+mov ax 2
+add bx 1
+jmp [0]
 halt
