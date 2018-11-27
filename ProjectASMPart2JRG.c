@@ -768,7 +768,7 @@ void splitCommand(char line[], char command[], char oper1[], char oper2[])
     } 
     lineSize -= 1; //Execute if not the halt command 
 
-    if (line[0] != 'h' && line[0]!= 'p' && line[0]!= 'g')
+    if (line[0] != 'h' && line[0]!= 'p' && line[0]!= 'g' && line[0] != '\n')
     { 
         //Get command char 
         char *spacePtr = strchr(line, ' ');        
@@ -806,15 +806,18 @@ void splitCommand(char line[], char command[], char oper1[], char oper2[])
             printf("line: %s\nlineSize: %d\nindex: %d\nindex2: %d\n", line, lineSize, index, index2);    //FOR DEBUGGING
 
         }
-        //printf("command: %s\n", command); 
-        printf("oper1: %s\n", oper1); 
-        printf("oper2: %s\n", oper2); //FOR DEBUGGING 
     } //Execute if line is halt else 
     if (line[0] == 'h' || line[0] == 'p' || line[0] == 'g')
     { 
         strncpy(command, line, lineSize); 
         oper1[0] = '\0'; 
         oper2[0] = '\0'; 
+    }
+    if(line[0] == '\n')
+    {
+        command[0] = '0';
+        oper1[0] = '\0';
+        oper2[0] = '\0';
     }
 }
 
@@ -889,6 +892,7 @@ void convertToMachineCode(FILE *fin)
 	else if (command[0] == 'a') //Add two Registers, Total placed in first one
 	{
 		machineCode = ADD;
+		printf("%c", oper1[0]);
 		machineCode += (whichReg(oper1[0] << 3));
 		machineCode += (whichReg(oper2[0]) + 1);
 		memory[address] = machineCode;
@@ -1014,6 +1018,12 @@ void convertToMachineCode(FILE *fin)
 		memory[address] = machineCode;
 		address++;
 	}
+	else if(command[0] == '0')
+    {
+	    machineCode = 0;
+	    memory[address] = machineCode;
+	    address++;
+    }
 
 	printf("\n");
 	printMemoryDump();
@@ -1130,7 +1140,8 @@ changes the letter of the registar to a number.
 ------------------------------------------------------------*/
 int whichReg(char regLetter)
 {
-	if (regLetter == 'a')
+	printf("%c",regLetter);
+    if (regLetter == 'a')
 	{
 		return AXREG;
 	}
