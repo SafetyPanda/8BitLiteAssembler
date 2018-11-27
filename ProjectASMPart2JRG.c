@@ -26,7 +26,7 @@ char ASM_FILE_NAME[ ] = "/home/safetypanda/Documents/CodingProjects/assemblyproj
 #define CXREG 2
 #define DXREG 3
 
-//commands
+//Commands
 #define HALT 5
 #define MOVREG 192
 #define ADD 160
@@ -77,11 +77,6 @@ int whichReg(char regLetter);			// Returns the number of the letter registar
 void changeToLowerCase(char line[]);	// Changes each character to lower case
 void printMemoryDumpHex();				// Prints memory in hexedecimal
 
-//RON's PERSONAL FUNCTIONS
-void parseRegister();
-int parseCommands(int parsedCommand);
-
-
 
 int main()
 {
@@ -94,9 +89,6 @@ int main()
 	system( "pause" );
 	return 0;
 }
-
-
-
 
 /********************   runCode   ***********************
 Executes the machine code
@@ -116,6 +108,7 @@ void runCode()
 	{
 
 		printf("Address Location: %d\n", address);
+		printf("Address Value: %d\n", memory[address]);
 		if ((memory[address] & 224) == MOVREG) //MOV Constant value into a register
 		{
 			registerNumber = memory[address] & 24;
@@ -173,12 +166,13 @@ void runCode()
 
 				memory[addressValue] = regis.DX;
 			}
-			printf("Value of Memory Address: %d is: %d\n",addressValue, memory[addressValue]);
         }
         else if((memory[address] & 224) == ADD) // ADD TWO REGISTERS TOGETHER.
         {
 			registerNumber = memory[address] & 24;
 			registerAddFrom = memory[address] & 3;
+
+            printf("Register 1:%d Register 2: %d\n", registerNumber, registerAddFrom);
 
 			if (registerNumber == 0)
 			{
@@ -257,9 +251,7 @@ void runCode()
 					regis.DX += regis.DX;
 				}
 			}
-			address++;
         }
-
         else if((memory[address] & 224) == CMP) //COMPARE REGISTER WITH REGISTER, ADDRESS, CONSTANT
 		{
 
@@ -267,10 +259,10 @@ void runCode()
         	registerNumber = memory[address] & 24;
 			registerAddFrom = memory[address] & 3;
 			printf("Register add from: %d \n", registerAddFrom);
-			printf("Address Value: %d", memory[address]);
+			printf("Address Value: %d\n", memory[address]);
+			printf("Address value with bitwise &: %d", (memory[address] & 224));
 
-
-			if((memory[address] & 100) == 100) //Check to see if I'm looking at an address
+			if(memory[address] == 100) //Check to see if I'm looking at an address
 			{
 				address++;
 				addressValue = memory[address];
@@ -341,9 +333,10 @@ void runCode()
 					}
 				}
 			}
-			else if((memory[address] & 96) == 96) // comparing with constant
+			else if(memory[address] == 96) // comparing with constant
 			{
-				printf("comparing with constant\n");
+				printf("MEMORY VALUE FOR CONSTANT %d", memory[address]);
+			    printf("comparing with constant\n");
 				address++;
 				if(registerNumber == AXREG)
 				{
@@ -359,21 +352,33 @@ void runCode()
 					{
 						regis.flag = 0;
 					}
-				}
+                    if(regis.BX > memory[address])
+                    {
+                        regis.flag = 1;
+                    }
+                    else if(regis.BX < memory[address])
+                    {
+                        regis.flag = -1;
+                    }
+                    else
+                    {
+                        regis.flag = 0;
+                    }
+                }
 				else if(registerNumber == BXREG)
 				{
-					if(regis.BX > memory[address])
-					{
-						regis.flag = 1;
-					}
-					else if(regis.BX < memory[address])
-					{
-						regis.flag = -1;
-					}
-					else
-					{
-						regis.flag = 0;
-					}
+                    if(regis.BX > memory[address])
+                    {
+                        regis.flag = 1;
+                    }
+                    else if(regis.BX < memory[address])
+                    {
+                        regis.flag = -1;
+                    }
+                    else
+                    {
+                        regis.flag = 0;
+                    }
 				}
 				else if(registerNumber == CXREG)
 				{
@@ -406,9 +411,10 @@ void runCode()
 					}
 				}
 			}
-			else if(registerAddFrom < 3) // Comparing Two registers
+			else if((memory[address] & 224) == 96) // Comparing Two registers
 			{
-				printf("Comparing two registers");
+				printf("Comparing two registers\n");
+				printf("Register 1:%d Register 2: %d\n", registerNumber, registerAddFrom);
 				if (registerNumber == AXREG)
 				{
 					if (registerAddFrom == 0)
@@ -474,7 +480,6 @@ void runCode()
 						}
 					}
 				}
-
 				else if (registerNumber == BXREG)
 				{
 					if (registerAddFrom == 0)
@@ -667,20 +672,84 @@ void runCode()
 					}
 				}
 			}
-			address++;
 		}
-		else if ((memory[address] & 14) == JMP)
+		else if (memory[address] == JMP)
 		{
 			printf("here");
 			address++;
 			address = memory[address];
 			printf("%d",address);
 		}
+		else if (memory[address] == JA)
+        {
+		    printf("in jump above");
+		 if (regis.flag == 1)
+         {
+		     address++;
+		     address = memory[address];
+		     printf("Address Jumping to: %d", address);
+         }
+        }
+        else if(memory[address] == JAE)
+        {
+            if(regis.flag == 1 || regis.flag == 0)
+            {
+                address++;
+                address = memory[address];
+                printf("%d", address);
+            }
+        }
+        else if(memory[address] == JB)
+        {
+            if (regis.flag == 1)
+            {
+                address++;
+                address = memory[address];
+                printf("%d\n", address);
+            }
+        }
+        else if (memory[address] == JBE)
+        {
+            if (regis.flag == 1 || regis.flag == 0)
+            {
+                address++;
+                address = memory[address];
+                printf("%d\n", address);
+            }
+        }
+        else if(memory[address] == JE)
+        {
+            if (regis.flag == 0)
+            {
+                address++;
+                address = memory[address];
+                printf("%d\n", address);
+            }
+        }
+        else if(memory[address] == JNE)
+        {
+            if (regis.flag == -1)
+            {
+            	printf("in here");
+                address++;
+                address = memory[address];
+                printf("%d\n", address);
+            }
+        }
+        else if ((memory[address] == GET))
+		{
+        	printf("Value of AX: %d\n", regis.AX);
+		}
+		else if (memory[address] == PUT)
+		{
+			printf("Enter a value: ");
+			scanf("%d", &regis.AX);
+		}
 		else if ((memory[address] & 5) == 5)
 		{
 			return;
 		}
-		printMemoryDump();
+		address++;
 	}
 
 }
@@ -699,7 +768,7 @@ void splitCommand(char line[], char command[], char oper1[], char oper2[])
     } 
     lineSize -= 1; //Execute if not the halt command 
 
-    if (line[0] != 'h') 
+    if (line[0] != 'h' && line[0]!= 'p' && line[0]!= 'g')
     { 
         //Get command char 
         char *spacePtr = strchr(line, ' ');        
@@ -741,7 +810,7 @@ void splitCommand(char line[], char command[], char oper1[], char oper2[])
         printf("oper1: %s\n", oper1); 
         printf("oper2: %s\n", oper2); //FOR DEBUGGING 
     } //Execute if line is halt else 
-    if (line[0] == 'h') 
+    if (line[0] == 'h' || line[0] == 'p' || line[0] == 'g')
     { 
         strncpy(command, line, lineSize); 
         oper1[0] = '\0'; 
