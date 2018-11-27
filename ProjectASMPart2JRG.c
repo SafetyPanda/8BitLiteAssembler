@@ -892,9 +892,9 @@ void convertToMachineCode(FILE *fin)
 	else if (command[0] == 'a') //Add two Registers, Total placed in first one
 	{
 		machineCode = ADD;
-		printf("%c", oper1[0]);
-		machineCode += (whichReg(oper1[0] << 3));
-		machineCode += (whichReg(oper2[0]) + 1);
+		printf("Oper1[0] in Convert to Machine Code: %c\n", oper1[0]);
+		machineCode += (whichReg(oper1[0]) << 3);
+		machineCode += (whichReg(oper2[0]));
 		memory[address] = machineCode;
 
 		address++;
@@ -1140,7 +1140,7 @@ changes the letter of the registar to a number.
 ------------------------------------------------------------*/
 int whichReg(char regLetter)
 {
-	printf("%c",regLetter);
+	printf("Register Letter in Which Reg: %c\n",regLetter);
     if (regLetter == 'a')
 	{
 		return AXREG;
@@ -1173,7 +1173,7 @@ void changeToLowerCase(char line[])
 	}
 }
 
-/*********************   changeToLowerCase   ********************
+/*********************   printMemoryDumpHex   ********************
 Prints memory in hexedecimal
 ----------------------------------------------------------------*/
 void printMemoryDumpHex()

@@ -1,6 +1,5 @@
-mov bx 10
-mov ax 100
+mov ax -1
+mov bx 100`
 add dx bx
-
 halt
 halt
