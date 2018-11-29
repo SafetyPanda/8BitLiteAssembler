@@ -33,7 +33,8 @@ char ASM_FILE_NAME[ ] = "/home/safetypanda/Documents/CodingProjects/assemblyproj
 #define MOVREG 192
 #define ADD 160
 #define MOVMEM  224
-#define MOVMEMADDRESS 240
+#define MOVMEMADDRESS 248
+#define MOVMEMADDRESSREG 240
 #define CMP 96
 #define PUT 7
 #define GET 6
@@ -107,11 +108,12 @@ void runCode()
 	bool anotherCommand = TRUE;
 	int registerNumber;
 	int registerAddFrom = 0;
+	int registerFrom = 0;
+
 	int addressValue;
 
 	while (anotherCommand)
 	{
-
 		printf("Address Location: %d\n", address);
 		printf("Address Value: %d\n", memory[address]);
 		if ((memory[address] & 224) == MOVREG) //MOV Constant value into a register
@@ -140,7 +142,7 @@ void runCode()
 
 			}
 		}
-        else if((memory[address] & 240) == MOVMEMADDRESS) //MOVING TO ANOTHER MEMORY ADDRESS
+        else if((memory[address] & 248) == MOVMEMADDRESS) //MOVING TO ANOTHER MEMORY ADDRESS
         {
 			registerNumber = memory[address] & 4;
 			printf("REGISTER NUMBER:%d",registerNumber);
@@ -155,24 +157,105 @@ void runCode()
 			else if (registerNumber == BXREG)
 			{
 				addressValue = memory[address];
-
 				memory[addressValue] = regis.BX;
 			}
 			else if (registerNumber == CXREG)
 			{
 				addressValue = memory[address];
-
 				memory[addressValue] = regis.CX;			}
 			else
 			{
 				addressValue = memory[address];
-
 				memory[addressValue] = regis.DX;
 			}
         }
-        else if((memory[address] & ))
+        else if((memory[address] & 240) == 240)
         {
+            printf("in here\n");
+            registerNumber = memory[address] & 12;
+            registerFrom = memory[address] & 3;
+            printf("Register 1:%d Register 2: %d\n", registerNumber, registerFrom);
 
+            if (registerFrom == AXREG)
+            {
+                if (registerNumber == 0)
+                {
+                    addressValue = regis.DX;
+                }
+                if (registerNumber == 8)
+                {
+                    addressValue = regis.DX;
+                }
+                if(registerNumber == 16)
+                {
+                    addressValue = regis.DX;
+                }
+                else
+                {
+                    addressValue = regis.DX;
+                }
+                memory[addressValue] = regis.AX;
+            }
+            else if(registerFrom == BXREG)
+            {
+                if (registerNumber == 0)
+                {
+                    addressValue = regis.DX;
+                }
+                if (registerNumber == 8)
+                {
+                    addressValue = regis.DX;
+                }
+                if(registerNumber == 16)
+                {
+                    addressValue = regis.DX;
+                }
+                else
+                {
+                    addressValue = regis.DX;
+                }
+                memory[addressValue] = regis.BX;
+            }
+            else if(registerFrom == CXREG)
+            {
+                if (registerNumber == 0)
+                {
+                    addressValue = regis.DX;
+                }
+                if (registerNumber == 8)
+                {
+                    addressValue = regis.DX;
+                }
+                if(registerNumber == 16)
+                {
+                    addressValue = regis.DX;
+                }
+                else
+                {
+                    addressValue = regis.DX;
+                }
+                memory[addressValue] = regis.CX;
+            }
+            else
+            {
+                if (registerNumber == 0)
+                {
+                    addressValue = regis.DX;
+                }
+                if (registerNumber == 8)
+                {
+                    addressValue = regis.DX;
+                }
+                if(registerNumber == 16)
+                {
+                    addressValue = regis.DX;
+                }
+                else
+                {
+                    addressValue = regis.DX;
+                }
+                memory[addressValue] = regis.DX;
+            }
         }
         else if((memory[address] & 224) == ADD) // ADD TWO REGISTERS TOGETHER.
         {
@@ -250,7 +333,23 @@ void runCode()
 					regis.DX += regis.BX;
 				}
 				else if (registerAddFrom == 2)
-				{
+				{if (registerNumber == 0)
+                {
+                    addressValue = regis.DX;
+                }
+                if (registerNumber == 8)
+                {
+                    addressValue = regis.DX;
+                }
+                if(registerNumber == 16)
+                {
+                    addressValue = regis.DX;
+                }
+                else
+                {
+                    addressValue = regis.DX;
+                }
+                memory[addressValue] = regis.AX;
 					regis.DX += regis.CX;
 				}
 				else
@@ -267,7 +366,7 @@ void runCode()
 			registerAddFrom = memory[address] & 3;
 			printf("Register add from: %d \n", registerAddFrom);
 			printf("Address Value: %d\n", memory[address]);
-			printf("Address value with bitwise &: %d", (memory[address] & 224));
+			printf("Address value with bitwise &: %d\n", (memory[address] & 224));
 
 			if(memory[address] == 100) //Check to see if I'm looking at an address
 			{
@@ -874,28 +973,25 @@ void convertToMachineCode(FILE *fin)
             {
                 convertToNumber(oper1, 1, &oper2num);
                 movmemAddress = oper2num;
-                machineCode += 16;
+                machineCode += 24;
                 memory[address] = machineCode;
                 memory[address] += whichReg(oper2[0]);
                 address++;
                 memory[address] = movmemAddress;
             }
-            else if ()
+            else if (oper1[3] != '+' && oper1[4] != '+')
             {
-                machineCode +=
-                machineCode += whichReg(oper1[1]);
+                machineCode += 16;
+                machineCode += (whichReg(oper1[1]) << 3);
                 machineCode += whichReg(oper2[0]);
-
+                memory[address] = machineCode;
+            }
+            else
+            {
 
             }
-
-
 			address++;
 		}
-//		if (oper2[0] == '[' && (oper2[1] == 'a' || oper2[1] == 'b' || oper2[1] == 'c' || oper2[1] == 'd'))
-//        {
-//		    machineCode = MOVFROMREG;
-//        }
 		if ((int)oper2[0] < 65 || (int)oper2[0] > 122)
 		{
 			machineCode = MOVREG;
@@ -903,13 +999,9 @@ void convertToMachineCode(FILE *fin)
 
 			memory[address] = machineCode;
 			address++;
-
-			//printf("BEFORE CONVERT TO NUMBER\n");
 			convertToNumber(oper2, 0, &oper2num);
-			//printf("MADE IT PAST CONVERT TO NUMBER\n");
             
 			memory[address] = oper2num;
-            //printf("MADE IT PAST OPER2NUM\n");
 			address++;
 		}
 	}
@@ -923,7 +1015,6 @@ void convertToMachineCode(FILE *fin)
 
 		address++;
 	}
-
 	else if(command[0] == 'c')
 	{
 		machineCode = CMP;
@@ -1049,8 +1140,6 @@ void convertToMachineCode(FILE *fin)
 
 	printf("\n");
 	printMemoryDump();
-
-
 }
 
 /********************   fillMemory   ***********************

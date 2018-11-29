@@ -1,10 +1,8 @@
-mov ax 10
-mov bx 10
+mov ax 100
+mov bx 130
 mov cx 10
-mov [100] ax
-mov [101] bx
-mov [102] cx
-
+mov [10] ax
+mov [ax] ax
 
 halt
 halt
