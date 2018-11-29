@@ -26,11 +26,14 @@ char ASM_FILE_NAME[ ] = "/home/safetypanda/Documents/CodingProjects/assemblyproj
 #define CXREG 2
 #define DXREG 3
 
-//Commands
+///////////////
+/// COMMANDS //
+///////////////
 #define HALT 5
 #define MOVREG 192
 #define ADD 160
 #define MOVMEM  224
+#define MOVMEMADDRESS 240
 #define CMP 96
 #define PUT 7
 #define GET 6
@@ -41,6 +44,8 @@ char ASM_FILE_NAME[ ] = "/home/safetypanda/Documents/CodingProjects/assemblyproj
 #define JBE 11
 #define JAE 13
 #define JA 12
+#define FUN
+
 
 
 //boolean
@@ -135,43 +140,45 @@ void runCode()
 
 			}
 		}
-        else if((memory[address] & 224) == MOVMEM) //MOVING TO ANOTHER MEMORY ADDRESS
+        else if((memory[address] & 240) == MOVMEMADDRESS) //MOVING TO ANOTHER MEMORY ADDRESS
         {
-			registerNumber = memory[address] & 24;
-
-			if (registerNumber == 0)
+			registerNumber = memory[address] & 4;
+			printf("REGISTER NUMBER:%d",registerNumber);
+			address++;
+			if (registerNumber == AXREG)
 			{
-				address++;
+
 				addressValue = memory[address];
 
 				memory[addressValue] = regis.AX;
 			}
-			else if (registerNumber == 8)
+			else if (registerNumber == BXREG)
 			{
-				address++;
 				addressValue = memory[address];
 
 				memory[addressValue] = regis.BX;
 			}
-			else if (registerNumber == 16)
+			else if (registerNumber == CXREG)
 			{
-				address++;
 				addressValue = memory[address];
 
 				memory[addressValue] = regis.CX;			}
 			else
 			{
-				address++;
 				addressValue = memory[address];
 
 				memory[addressValue] = regis.DX;
 			}
         }
+        else if((memory[address] & ))
+        {
+
+        }
         else if((memory[address] & 224) == ADD) // ADD TWO REGISTERS TOGETHER.
         {
 			registerNumber = memory[address] & 24;
 			registerAddFrom = memory[address] & 3;
-
+            printf("Adding two registers\n");
             printf("Register 1:%d Register 2: %d\n", registerNumber, registerAddFrom);
 
 			if (registerNumber == 0)
@@ -415,7 +422,8 @@ void runCode()
 			{
 				printf("Comparing two registers\n");
 				printf("Register 1:%d Register 2: %d\n", registerNumber, registerAddFrom);
-				if (registerNumber == AXREG)
+				printf("Value of AX: %d Value of BX: %d Value of CX: %d Value of DX: %d\n", regis.AX, regis.BX, regis.CX, regis.DX);
+				if (registerNumber == 0)
 				{
 					if (registerAddFrom == 0)
 					{
@@ -480,7 +488,7 @@ void runCode()
 						}
 					}
 				}
-				else if (registerNumber == BXREG)
+				else if (registerNumber == 8)
 				{
 					if (registerAddFrom == 0)
 					{
@@ -544,7 +552,7 @@ void runCode()
 						}
 					}
 				}
-				else if (registerNumber == CXREG)
+				else if (registerNumber == 16)
 				{
 					if (registerAddFrom == 0)
 					{
@@ -608,7 +616,7 @@ void runCode()
 						}
 					}
 				}
-				else if (registerNumber == DXREG)
+				else
 				{
 					if (registerAddFrom == 0)
 					{
@@ -833,6 +841,7 @@ void convertToMachineCode(FILE *fin)
 	char oper1[LINE_SIZE], oper2[LINE_SIZE];	// the two operands could be empty
 	int machineCode = 0;			// One line of converted asm code from the file
 	int oper2num;
+	int movmemAddress;
 	
     fgets(line, LINE_SIZE, fin);
     
@@ -856,22 +865,37 @@ void convertToMachineCode(FILE *fin)
 		memory[address] = HALT;
 		address++;
 	}
-	else if (command[0] == 'm')  //move into a register
+	else if (command[0] == 'm')  //move into a register, address
 	{
-		if (oper2[0] == '[')
+		if (oper1[0] == '[')
 		{
 			machineCode = MOVMEM;
-			machineCode += (whichReg(oper1[0]) << 3);
+            if(oper1[1] != 'a' && oper1[1] != 'b' && oper1[1] != 'c' && oper1[1] != 'd')
+            {
+                convertToNumber(oper1, 1, &oper2num);
+                movmemAddress = oper2num;
+                machineCode += 16;
+                memory[address] = machineCode;
+                memory[address] += whichReg(oper2[0]);
+                address++;
+                memory[address] = movmemAddress;
+            }
+            else if ()
+            {
+                machineCode +=
+                machineCode += whichReg(oper1[1]);
+                machineCode += whichReg(oper2[0]);
 
-			machineCode += 4; //Adding address flag
 
-			memory[address] = machineCode;
-			address++;
+            }
 
-			convertToNumber(oper2, 1, &oper2num);
-			memory[address] = oper2num;
+
 			address++;
 		}
+//		if (oper2[0] == '[' && (oper2[1] == 'a' || oper2[1] == 'b' || oper2[1] == 'c' || oper2[1] == 'd'))
+//        {
+//		    machineCode = MOVFROMREG;
+//        }
 		if ((int)oper2[0] < 65 || (int)oper2[0] > 122)
 		{
 			machineCode = MOVREG;
@@ -1001,8 +1025,6 @@ void convertToMachineCode(FILE *fin)
 
 			convertToNumber(oper1, 1, &oper2num);
 			memory[address] = oper2num;
-
-
 		}
 		address++;
 	}
