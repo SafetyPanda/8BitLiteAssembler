@@ -324,38 +324,22 @@ void runCode()
 			}
 			else
 			{
-				if (registerAddFrom == 0)
-				{
-					regis.DX += regis.AX;
-				}
-				else if (registerAddFrom == 1)
-				{
-					regis.DX += regis.BX;
-				}
-				else if (registerAddFrom == 2)
-				{if (registerNumber == 0)
+                if (registerAddFrom == 0)
                 {
-                    addressValue = regis.DX;
+                    regis.DX += regis.AX;
                 }
-                if (registerNumber == 8)
+                else if (registerAddFrom == 1)
                 {
-                    addressValue = regis.DX;
+                    regis.DX += regis.BX;
                 }
-                if(registerNumber == 16)
+                else if (registerAddFrom == 2)
                 {
-                    addressValue = regis.DX;
+                    regis.DX += regis.CX;
                 }
                 else
                 {
-                    addressValue = regis.DX;
+                    regis.DX += regis.DX;
                 }
-                memory[addressValue] = regis.AX;
-					regis.DX += regis.CX;
-				}
-				else
-				{
-					regis.DX += regis.DX;
-				}
 			}
         }
         else if((memory[address] & 224) == CMP) //COMPARE REGISTER WITH REGISTER, ADDRESS, CONSTANT
