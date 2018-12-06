@@ -26,6 +26,17 @@ char ASM_FILE_NAME[ ] = "/home/safetypanda/Documents/CodingProjects/assemblyproj
 #define CXREG 2
 #define DXREG 3
 
+//MIDDLE REGISTERS
+#define AXR 0
+#define BXR 8
+#define CXR 16
+#define DXR 24
+
+//FULLY ACTIVATED BITS
+#define HIGHBITS 224
+#define MIDDLEBITS 24
+#define LOWBITS 7
+
 ///////////////
 /// COMMANDS //
 ///////////////
@@ -33,20 +44,26 @@ char ASM_FILE_NAME[ ] = "/home/safetypanda/Documents/CodingProjects/assemblyproj
 #define MOVREG 192
 #define ADD 160
 #define MOVMEM  224
-#define MOVMEMADDRESS 248
-#define MOVMEMADDRESSREG 240
 #define CMP 96
 #define PUT 7
 #define GET 6
-#define JMP 14
-#define JE 8
-#define JNE 9
-#define JB 10
-#define JBE 11
-#define JAE 13
-#define JA 12
-#define FUN
+#define JMP 8
+#define JE 0
+#define JNE 2
+#define JB 2
+#define JBE 3
+#define JAE 5
+#define JA 4
+#define FUN 4
+#define BRK 3
 
+/////////////////////////
+// Low Order Bit Stuff //
+////////////////////////
+#define MEMADDRESS 6
+#define CONSTANT 7
+#define BXADDRESS 4
+#define BXPLUS 5
 
 
 //boolean
@@ -69,6 +86,7 @@ struct Registers
 }regis;
 Memory memory[MAX] = { 0 };
 int address;
+int stackPtr = MAX + 1;
 
 
 void runCode();	// Executes the machine code	****NEEDS WORK***
@@ -82,6 +100,11 @@ void convertToNumber(char line[], int start, int *value);	// converts a sub-stri
 int whichReg(char regLetter);			// Returns the number of the letter registar
 void changeToLowerCase(char line[]);	// Changes each character to lower case
 void printMemoryDumpHex();				// Prints memory in hexedecimal
+int parseCommand(int instruction, int operand);
+int compareInts(int one, int two);
+void restoreStackValues();
+void saveStackValues();
+
 
 
 int main()
@@ -109,14 +132,15 @@ void runCode()
 	int registerNumber;
 	int registerAddFrom = 0;
 	int registerFrom = 0;
-
+	int command;
 	int addressValue;
 
 	while (anotherCommand)
 	{
+		command = parseCommand(memory[address],1);
 		printf("Address Location: %d\n", address);
 		printf("Address Value: %d\n", memory[address]);
-		if ((memory[address] & 224) == MOVREG) //MOV Constant value into a register
+		if (command == MOVREG) //MOV Constant value into a register
 		{
 			registerNumber = memory[address] & 24;
 
@@ -142,7 +166,7 @@ void runCode()
 
 			}
 		}
-        else if((memory[address] & 248) == MOVMEMADDRESS) //MOVING TO ANOTHER MEMORY ADDRESS
+        else if((memory[address] & 248) == MOVMEM) //MOVING TO ANOTHER MEMORY ADDRESS
         {
 			registerNumber = memory[address] & 4;
 			printf("REGISTER NUMBER:%d",registerNumber);
@@ -829,12 +853,11 @@ void runCode()
         }
         else if ((memory[address] == GET))
 		{
-        	printf("Value of AX: %d\n", regis.AX);
+
 		}
 		else if (memory[address] == PUT)
 		{
-			printf("Enter a value: ");
-			scanf("%d", &regis.AX);
+
 		}
 		else if ((memory[address] & 5) == 5)
 		{
@@ -1191,6 +1214,62 @@ void printMemoryDump()
 
 
 
+/////////////////////////
+/// Command Functions ///
+/////////////////////////
+void move()
+{
+
+}
+
+void compare()
+{
+	//compareInts();
+}
+
+void function()
+{
+	saveStackValues();
+	memory[memory[address + 1] -1] = address + 3;
+	address = memory[address +1];
+}
+
+void jump()
+{
+
+}
+
+void add()
+{
+
+}
+
+void put()
+{
+	printf("Enter a value: ");
+	scanf("%d", &regis.AX);
+}
+
+void get()
+{
+	printf("Value of AX: %d\n", regis.AX);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //-----------------------------------------------------------------------------
 //**************   Helper functions   *****************************************
 //-----------------------------------------------------------------------------
@@ -1301,4 +1380,77 @@ void printMemoryDumpHex()
 	printf("Flag: %d", regis.flag);
 
 	printf("\n\n");
+}
+
+
+int parseCommand(int instruction, int operand)
+{
+	int command; //Value of High Middle Or Low
+
+	if(operand == 1)
+	{
+		command = (instruction & HIGHBITS);
+		return command;
+	}
+	else if(operand == 2)
+	{
+		command = (instruction & MIDDLEBITS);
+		return command;
+	}
+	else if(operand == 3)
+	{
+		command = (instruction & LOWBITS);
+		return command;
+	}
+}
+
+int compareInts(int one, int two)
+{
+
+	if (one > two)
+	{
+		return 1;
+	}
+	else if (one == two)
+	{
+		return 0;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+void saveStackValues()
+{
+	stackPtr--;
+	memory[stackPtr] = regis.AX;
+	stackPtr--;
+	memory[stackPtr] = regis.BX;
+	stackPtr--;
+	memory[stackPtr] = regis.CX;
+	stackPtr--;
+	memory[stackPtr] = regis.DX;
+	stackPtr--;
+	memory[stackPtr] = regis.flag;
+	stackPtr--;
+	memory[stackPtr] = ((address +2) + memory[address + 2] * 2) +1;
+}
+
+void restoreStackValues()
+{
+	address = memory[stackPtr];
+	stackPtr++;
+	regis.flag = memory[stackPtr];
+	stackPtr++;
+
+	regis.DX = memory[stackPtr];
+	stackPtr++;
+	regis.CX = memory[stackPtr];
+	stackPtr++;
+	regis.BX = memory[stackPtr];
+	stackPtr++;
+	regis.AX = memory[stackPtr];
+	stackPtr++;
+	address++;
 }
