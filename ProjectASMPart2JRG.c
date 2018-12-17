@@ -36,6 +36,7 @@ char ASM_FILE_NAME[ ] = "/home/safetypanda/Documents/CodingProjects/assemblyproj
 #define HIGHBITS 224
 #define MIDDLEBITS 24
 #define LOWBITS 7
+#define JUMPBITS 14
 
 ///////////////
 /// COMMANDS //
@@ -75,11 +76,19 @@ char ASM_FILE_NAME[ ] = "/home/safetypanda/Documents/CodingProjects/assemblyproj
 #define EQUAL 0
 #define BELOW -1
 
+// Lazy Defines
+
+#define NUMBERS line[0] == '0' || line[0] == '1' || line[0] == '2' || line[0] == '3' || line[0] == '4' || line[0] == '5' || line[0] == '6' || line[0] == '7' || line[0] == '8' || line[0] == '9'
+#define REGISTERS line[1] == 'x' || line[0] == 'b' || line[0] == 'c' || line[0] == 'd'
+#define NENUMBERS line[0] != '0' && line[0] != '1' && line[0] != '2' && line[0] != '3' && line[0] != '4' && line[0] != '5' && line[0] != '6' && line[0] != '7' && line[0] != '8' && line[0] != '9'
+#define NEREGISTERS (line[1] != 'x') && line[0] != 'b' && line[0] != 'c' && line[0] != 'd'
 
 //boolean
 #define TRUE 1
 #define FALSE 0
 typedef int bool;
+
+
 
 enum paramType { reg, mem, constant, arrayBx, arrayBxPlus, none };
 
@@ -96,8 +105,7 @@ struct Registers
 }regis;
 Memory memory[MAX] = { 0 };
 int address;
-int stackPtr = MAX + 1;
-
+int stackPtr = MAX;
 
 void runCode();	// Executes the machine code	****NEEDS WORK***
 void splitCommand(char line[], char command[], char oper1[], char oper2[]);	// splits line of asm into it's three parts	****NEEDS WORK***
@@ -122,12 +130,15 @@ void compare();
 void put();
 void get();
 void jump();
-
+void brk();
+void function();
 
 int main()
 {
 	printMemoryDump();
 	fillMemory();
+	int killme;
+	scanf("%d", &killme);
 	runCode();
 	printMemoryDump();
 	printf("\n");
@@ -148,48 +159,58 @@ void runCode()
 	bool anotherCommand = TRUE;
 	int command;
 	int jmpCommand;
-
+	//scanf("%d", &jmpCommand);
 
 	while (anotherCommand) {
-
+      //  scanf("%d", &jmpCommand);
         printf("Address Location: %d\n", address);
         printf("Address Value: %d\n", memory[address]);
         command = parseCommand(memory[address], 1);
-        printf("COMMAND:%d\n", command);
+        printf("COMMAND:%d\n\n", command);
         jmpCommand = parseCommand(memory[address],4);
 
         if (command == MOVREG || command == MOVMEM) //MOV Commands
         {
             move();
         }
-        if(command == ADD)
+        else if(command == ADD)
         {
             add();
         }
-        if(command == CMP)
+        else if(command == CMP)
         {
             compare();
         }
-        if(jmpCommand <= JMP && jmpCommand >= JE)
+        else if(jmpCommand <= JMP && jmpCommand >= JE)
         {
             jump();
         }
-        if(command == PUT)
+        else if(memory[address] == PUT)
         {
             put();
         }
-        if(command == GET)
+        else if(memory[address] == GET)
         {
             get();
         }
-        if(memory[address] == 0)
-        {
-            address++;
-        }
-		if(memory[address] == HALT)
+		else if(memory[address] == HALT)
 		{
 			return;
 		}
+		else if(memory[address] == FUN)
+        {
+		    printf("in here\n");
+		    function();
+        }
+		else if(memory[address] == BRK )
+        {
+		    restoreStackValues();
+        }
+		else
+        {
+		    address++;
+        }
+        printMemoryDump();
     }
 }
 
@@ -205,10 +226,10 @@ void splitCommand(char line[], char command[], char oper1[], char oper2[])
     { 
         lineSize++; 
     }
-    lineSize -= 1; //Execute if not the halt command 
 
-    if (line[0] != 'h' && line[0]!= 'p' && line[0]!= 'g' && line[0] != '\n')
-    { 
+    lineSize -= 1; //Execute if not the halt command
+    if (line[0] != 'h' && line[0]!= 'p' && line[0]!= 'g' && line[0] != '\n' && line[0]!= '[' && NENUMBERS && NEREGISTERS)
+    {
         //Get command char 
         char *spacePtr = strchr(line, ' ');        
         //spacePtr = strchr(line, ' ');  //the pointer where the first space occurs
@@ -246,7 +267,7 @@ void splitCommand(char line[], char command[], char oper1[], char oper2[])
 
         }
     } //Execute if line is halt else
-    if (line[0] == 'h' || line[0] == 'p' || line[0] == 'g')
+    if (line[0] == 'h' || line[0] == 'p' || line[0] == 'g' || line[0] == '[' || NUMBERS || REGISTERS)
     {
         strcpy(command, line);
         oper1[0] = '\0';
@@ -258,12 +279,6 @@ void splitCommand(char line[], char command[], char oper1[], char oper2[])
         oper1[0] = '\0';
         oper2[0] = '\0';
     }
-//    else //NEEDS WORK
-//    {
-//        strncpy(command, line, lineSize);
-//        oper1[0] = '\0';
-//        oper2[0] = '\0';
-//    }
 }
 
 /********************   convertToMachineCode   ***********************
@@ -312,16 +327,46 @@ void convertToMachineCode(FILE *fin)
             machineCode = MOVREG;
 		    if (oper1[0] == '[') //Move into address location
             {
-                machineCode = MOVMEM;
+
                 if (oper1[1] != 'a' && oper1[1] != 'b' && oper1[1] != 'c' && oper1[1] != 'd')
                 {
+                    machineCode = MOVMEM;
                     convertToNumber(oper1, 1, &oper2num);
                     movmemAddress = oper2num;
+
                     machineCode += MEMADDRESS;
                     memory[address] = machineCode;
-                    memory[address] += whichReg(oper2[0]);
+                    memory[address] += (whichReg(oper2[0]) << 3);
+
+                    int regNum = whichReg(oper2[0]);
+                    printf("REGNUM: %d\n", regNum);
                     address++;
                     memory[address] = movmemAddress;
+
+                    return;
+                }
+                else if(oper1[3] != '+')
+                {
+                    machineCode += BXADDRESS;
+                    memory[address] = machineCode;
+                    memory[address] += (whichReg(oper2[0]) << 3);
+                    address++;
+
+                    return;
+                }
+                else
+                {
+                    machineCode += BXPLUS;
+                    machineCode += (whichReg(oper2[0]) << 3);
+                    memory[address] = machineCode;
+
+                    convertToNumber(oper1, 4, &oper2num);
+                    address++;
+                    printf("OPER2NUM:%d\n", oper2num);
+                    memory[address] = oper2num;
+                    address++;
+
+                    return;
                 }
             }
 		}
@@ -335,7 +380,7 @@ void convertToMachineCode(FILE *fin)
 		    machineCode = CMP;
 	    }
 
-        if(oper2[0] == '[')
+        if(command[0] != 'm' && oper2[0] == '[')
         {
             if(oper2[1] != 'b')
             {
@@ -375,7 +420,10 @@ void convertToMachineCode(FILE *fin)
         }
         else if ((int)oper2[0] < 65 || (int)oper2[0] > 122)
         {
+
             machineCode += (whichReg(oper1[0]) << 3);
+
+            printf("oper1:%s\n",oper1);
             machineCode += CONSTANT;
 
             memory[address] = machineCode;
@@ -396,7 +444,9 @@ void convertToMachineCode(FILE *fin)
     }
 	else if(command[0] == 'j') //jumps
 	{
-		if(command[1] == 'e')
+		int junk = 0;
+
+	    if(command[1] == 'e')
 		{
 			machineCode = JE;
 		}
@@ -430,10 +480,10 @@ void convertToMachineCode(FILE *fin)
 		{
 			machineCode = JMP;
 		}
-		memory[address] = machineCode;
-		address++;
+        memory[address] = machineCode;
+        address++;
 
-		convertToNumber(oper1, 1, &oper2num);
+        convertToNumber(oper1, 1, &oper2num);
         memory[address] = oper2num;
         address++;
 	}
@@ -449,16 +499,92 @@ void convertToMachineCode(FILE *fin)
 		memory[address] = machineCode;
 		address++;
 	}
-	else if(strcmp(command, "\n"))
+	else if(command[0] == 'f')
     {
-	    machineCode = 0;
+	    machineCode = FUN;
+        memory[address] = machineCode;
+
+
+        convertToNumber(oper1, 1, &oper2num);
+	    address++;
+	    memory[address] = oper2num; //ADDRESS OF FUNCTION
+
+	    address++;
+        convertToNumber(oper2, 0, &oper2num);
+
+        int parameterCount = oper2num;
+        memory[address] = parameterCount; //AMOUNT OF PARAMETERS
+	    address++;
+
+        for(int i = 0; i < parameterCount; i++)
+        {
+            fgets(line, LINE_SIZE, fin);
+
+            if(line[0] == '[')
+            {
+                if(line[1] != 'b')
+                {
+                    machineCode = MEMADDRESS;
+
+                    convertToNumber(line, 1, &oper2num);
+                    movmemAddress = oper2num;
+
+                    memory[address] = machineCode;
+                    address++;
+
+                    memory[address] = movmemAddress;
+                    address++;
+                }
+                else if (line[3] != '+')
+                {
+                    machineCode = BXADDRESS;
+                    memory[address] = machineCode;
+
+                }
+                else
+                {
+                    machineCode = BXPLUS;
+                    memory[address] = machineCode;
+
+                    convertToNumber(line, 4, &oper2num);
+                    address++;
+                    memory[address] = oper2num;
+                }
+                address++;
+            }
+            else if ((int)line[0] < 65 || (int)line[0] > 122)
+            {
+                machineCode = CONSTANT;
+
+                memory[address] = machineCode;
+                address++;
+                convertToNumber(line, 0, &oper2num);
+
+                memory[address] = oper2num;
+                address++;
+            }
+            else if(line[0] == 'a'|| line[0] == 'b' || line[0] == 'c' || line[0] == 'd')
+            {
+                machineCode = whichReg(line[0]);
+                memory[address] = machineCode;
+                address++;
+                memory[address] = machineCode;
+                address++;
+            }
+        }
+    }
+	else if(command[0] == 'b')
+    {
+	    machineCode = BRK;
 	    memory[address] = machineCode;
 	    address++;
     }
 	else
     {
         convertToNumber(command, 0, &oper2num);
+        printf("command:%d\n",command);
         memory[address] = oper2num;
+        address++;
     }
 
 	printf("\n");
@@ -533,14 +659,15 @@ void printMemoryDump()
 /////////////////////////
 /// Command Functions ///
 /////////////////////////
+
 void move()
 {
     int middle = parseCommand(memory[address],2);
     int end = parseCommand(memory[address],3);
     int begin = parseCommand(memory[address],1);
     int junk;
+    printf("VALUE OF BEGIN: %d\n",begin);
     printf("VALUE OF END: %d\n", end);
-    scanf("%d",&junk);
     int memValue;
 
     if (begin == MOVMEM)
@@ -548,17 +675,11 @@ void move()
         address++;
         memValue = memory[address];
 
-
-        switch(middle) // MOV CONSTANT
+        switch(middle)
         {
             case AXR:
             {
                 memory[memValue] = regis.AX;
-                break;
-            }
-            case BXR:
-            {
-                memory[memValue] = regis.BX;
                 break;
             }
             case CXR:
@@ -571,11 +692,15 @@ void move()
                 memory[memValue] = regis.DX;
                 break;
             }
+            default:
+            {
+                memory[memValue] = regis.BX;
+                break;
+            }
         }
-        return;
     }
 
-    if(end == CONSTANT)
+    else if(end == CONSTANT)
     {
         switch(middle) // MOV CONSTANT
         {
@@ -606,7 +731,7 @@ void move()
         }
     }
 
-    if(end == MEMADDRESS) //MOV FROM MEMADDRESS
+    else if(end == MEMADDRESS) //MOV FROM MEMADDRESS
     {
         address++;
         memValue = memory[address];
@@ -639,7 +764,7 @@ void move()
         }
     }
 
-    if(end == BXADDRESS) //BX ADDRESS
+    else if(end == BXADDRESS) //BX ADDRESS
     {
         memValue = regis.BX;
 
@@ -647,30 +772,30 @@ void move()
         {
             case AXR:
             {
-                regis.AX = memory[memValue];
+                memory[memValue] = regis.AX;
                 break;
             }
             case BXR:
             {
 
-                regis.BX = memory[memValue];
+                memory[memValue] = regis.BX;
                 break;
             }
             case CXR:
             {
 
-                regis.CX = memory[memValue];
+                memory[memValue] = regis.CX;
                 break;
             }
             case DXR:
             {
 
-                regis.DX = memory[memValue];
+                memory[memValue] = regis.AX;
                 break;
             }
         }
     }
-    if(end == BXPLUS) //BX PLUS
+    else if(end == BXPLUS) //BX PLUS
     {
         memValue = regis.BX;
         address++;
@@ -680,30 +805,30 @@ void move()
         {
             case AXR:
             {
-                regis.AX = memory[memValue];
+                memory[memValue] = regis.AX;
                 break;
             }
             case BXR:
             {
 
-                regis.BX = memory[memValue];
+                memory[memValue] = regis.BX;
                 break;
             }
             case CXR:
             {
 
-                regis.CX = memory[memValue];
+                memory[memValue] = regis.CX;
                 break;
             }
             case DXR:
             {
 
-                regis.DX = memory[memValue];
+                memory[memValue] = regis.DX;
                 break;
             }
         }
     }
-    if(end < 4)
+    else if(end < 4)
     {
         switch(middle)
         {
@@ -984,9 +1109,72 @@ void compare()
 
 void function()
 {
-	saveStackValues();
-	memory[memory[address + 1] -1] = address + 3;
-	address = memory[address +1];
+	int functionStart;
+	int tempAddress;
+	int command;
+	int memoryValue;
+
+    saveStackValues();
+
+	address++;
+	functionStart = memory[address];
+
+	printf("%d\n",functionStart);
+
+	address++;
+	tempAddress = (functionStart - memory[address]);
+    printf("%d\n",tempAddress);
+
+	address++;
+
+	while (tempAddress != functionStart)
+    {
+	    command = parseCommand(memory[address],3);
+	    switch (command)
+        {
+            case CONSTANT:
+            {
+                address++;
+                memory[tempAddress] = memory[address];
+                break;
+            }
+            case BXADDRESS:
+            {
+                address++;
+                memory[tempAddress] = regis.BX;
+            }
+            case BXPLUS:
+            {
+                address++;
+                memoryValue = regis.BX;
+                memoryValue+= memory[address];
+                memory[tempAddress] = memoryValue;
+            }
+            default:
+            {
+                address++;
+                if(command == AXREG)
+                {
+                    memory[tempAddress] =regis.AX;
+                }
+                if(command == BXREG)
+                {
+                    memory[tempAddress] =regis.BX;
+                }
+                if(command == CXREG)
+                {
+                    memory[tempAddress] =regis.CX;
+                }
+                if(command == DXREG)
+                {
+                    memory[tempAddress] =regis.DX;
+                }
+            }
+        }
+	    tempAddress++;
+	    address++;
+    }
+    address = functionStart;
 }
 
 void jump()
@@ -1051,11 +1239,11 @@ void jump()
             }
             break;
         }
-        default:
-        {
-            address++;
-            break;
-        }
+//        default:
+//        {
+//            address++;
+//            break;
+//        }
     }
 }
 
@@ -1064,6 +1252,9 @@ void add()
     int middle = parseCommand(memory[address],2);
     int end = parseCommand(memory[address],3);
     int memValue;
+
+    printf("VALUE OF MIDDLE: %d\n",middle);
+    printf("VALUE OF END: %d\n", end);
 
     if(end == CONSTANT)
     {
@@ -1277,16 +1468,23 @@ void add()
 
 void put()
 {
-	printf("Enter a value: ");
-	scanf("%d", &regis.AX);
-	address++;
+    printf("Value of AX: %d\n", regis.AX);
+    address++;
 }
 
 void get()
 {
-	printf("Value of AX: %d\n", regis.AX);
-	address++;
+    printf("Enter a value: ");
+    scanf("%d", &regis.AX);
+    address++;
 }
+
+void brk()
+{
+    restoreStackValues();
+}
+
+
 
 //-----------------------------------------------------------------------------
 //**************   Helper functions   *****************************************
@@ -1306,7 +1504,6 @@ void convertToNumber(char line[], int start, int *value)
 	char number[16];
 	int negative = FALSE;
 	int i = 0;
-	printf("Number Is : %d\n", line[start]); 
 	if (line[start] != NULL && line[start] == '-')
 	{
 		++start;
@@ -1318,7 +1515,6 @@ void convertToNumber(char line[], int start, int *value)
 		i++;
 		++start;
 	}
-	printf("Made it past While condition\n");
 	number[i] = '\0';
 	*value = atoi(number);
 	if (negative == TRUE)
@@ -1408,25 +1604,21 @@ int parseCommand(int instruction, int operand)
 	if(operand == 1)
 	{
 		command = (instruction & HIGHBITS);
-		printf("PARSED COMMAND: %d\n", command);
 		return command;
 	}
 	else if(operand == 2)
 	{
 		command = (instruction & MIDDLEBITS);
-        printf("PARSED COMMAND: %d\n", command);
 		return command;
 	}
 	else if(operand == 3)
 	{
 		command = (instruction & LOWBITS);
-        printf("PARSED COMMAND: %d\n", command);
 		return command;
 	}
 	else if(operand == 4) //FOR JUMP
     {
-	    command = (instruction & JMP);
-        printf("PARSED COMMAND: %d\n", command);
+	    command = (instruction & JUMPBITS);
 	    return command;
     }
 }
@@ -1461,7 +1653,8 @@ void saveStackValues()
 	stackPtr--;
 	memory[stackPtr] = regis.flag;
 	stackPtr--;
-	memory[stackPtr] = ((address +2) + memory[address + 2] * 2) +1;
+
+	memory[stackPtr] = (memory[address] + ((memory[address + 2] * 2 )-1)) ; //RETURN VALUE PUTS YOU AT END OF FUNCTION CALL
 }
 
 void restoreStackValues()
@@ -1479,5 +1672,4 @@ void restoreStackValues()
 	stackPtr++;
 	regis.AX = memory[stackPtr];
 	stackPtr++;
-	address++;
 }
